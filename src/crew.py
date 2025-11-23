@@ -37,6 +37,7 @@ class PaymentValidationResultSchema(BaseModel):
 
 class PaymentStatusSchema(BaseModel):
     summary: str = Field(..., description="Resumo do status do pagamento")
+    payment_validation: PaymentValidationResultSchema = Field(..., description="Detalhes da validação do pagamento")
 
 
 @CrewBase

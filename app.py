@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import date, datetime
 from pathlib import Path
 
@@ -19,17 +20,107 @@ def _ensure_history_path() -> None:
         parent_dir.mkdir(parents=True, exist_ok=True)
 
 
+def parse_validation_string(text: str) -> dict | None:
+    """Extrai campos do PaymentValidationResultSchema representado como string."""
+    if not isinstance(text, str):
+        return None
+
+    pattern = r"payment_validation=PaymentValidationResultSchema\((.*?)\)"
+    match = re.search(pattern, text)
+    inner = None
+
+    if match:
+        inner = match.group(1)
+    elif text.strip().startswith("PaymentValidationResultSchema"):
+        start = text.find('(')
+        end = text.rfind(')')
+        if start != -1 and end != -1:
+            inner = text[start + 1:end]
+
+    if not inner:
+        return None
+
+    pairs = re.findall(r"(\w+)=['\"]([^'\"]+)['\"]", inner)
+    if not pairs:
+        return None
+
+    return {key: value for key, value in pairs}
+
+
+def normalize_validation(validation_data):
+    """Converte o resultado de validação para um dicionário serializável."""
+    if validation_data in (None, ""):
+        return None
+
+    if isinstance(validation_data, dict):
+        return {
+            key: (str(value) if not isinstance(value, (int, float, bool, type(None))) else value)
+            for key, value in validation_data.items()
+        }
+
+    if hasattr(validation_data, "model_dump"):
+        return normalize_validation(validation_data.model_dump())
+
+    if hasattr(validation_data, "dict"):
+        return normalize_validation(validation_data.dict())
+
+    if isinstance(validation_data, str):
+        try:
+            parsed = json.loads(validation_data)
+            return normalize_validation(parsed)
+        except json.JSONDecodeError:
+            parsed = parse_validation_string(validation_data)
+            if parsed:
+                return normalize_validation(parsed)
+            return {"raw": validation_data}
+
+    return {"raw": str(validation_data)}
+
+
+def extract_summary_and_validation(details_value, existing_validation=None):
+    """Retorna o resumo textual e os detalhes de validação estruturados."""
+    summary_text = ""
+    validation_dict = normalize_validation(existing_validation)
+
+    if isinstance(details_value, dict):
+        summary_text = (details_value.get("summary") or "").strip()
+        if validation_dict is None:
+            validation_dict = normalize_validation(details_value.get("payment_validation"))
+
+    elif isinstance(details_value, str):
+        summary_match = re.search(r"summary=['\"]([^'\"]*)['\"]", details_value)
+        summary_text = summary_match.group(1) if summary_match else details_value.strip()
+        if validation_dict is None:
+            validation_dict = normalize_validation(parse_validation_string(details_value))
+
+    elif details_value is not None:
+        summary_text = str(details_value)
+
+    if not summary_text:
+        summary_text = "Resumo não disponível."
+
+    return summary_text, validation_dict
+
+
 def load_history() -> list[dict]:
     """Carrega o histórico de análises do arquivo JSON, se existir."""
     if HISTORY_PATH.exists():
         try:
             with HISTORY_PATH.open("r", encoding="utf-8") as file:
                 history = json.load(file)
-            # Normaliza datas salvas como string ISO para objetos date
+
             for item in history:
                 data_value = item.get("data")
                 if isinstance(data_value, str):
                     item["data"] = date.fromisoformat(data_value)
+
+                summary_text, validation_dict = extract_summary_and_validation(
+                    item.get("detalhes"),
+                    item.get("validacao_pagamento")
+                )
+                item["detalhes"] = summary_text
+                item["validacao_pagamento"] = normalize_validation(validation_dict)
+
             return history
         except (json.JSONDecodeError, ValueError):
             return []
@@ -45,10 +136,15 @@ def save_history(history: list[dict]) -> None:
             return value.isoformat()
         return value
 
-    serializable_history = [
-        {key: _serialize(val) for key, val in entry.items()}
-        for entry in history
-    ]
+    serializable_history = []
+    for entry in history:
+        prepared_entry = dict(entry)
+        prepared_entry["validacao_pagamento"] = normalize_validation(
+            prepared_entry.get("validacao_pagamento")
+        ) or {}
+        serializable_history.append({
+            key: _serialize(val) for key, val in prepared_entry.items()
+        })
 
     with HISTORY_PATH.open("w", encoding="utf-8") as file:
         json.dump(serializable_history, file, ensure_ascii=False, indent=2)
@@ -66,26 +162,6 @@ def format_date_display(value) -> str:
         except Exception:
             return value
     return str(value)
-
-
-def format_model_response(response) -> str:
-    """Prepara o conteúdo retornado pelo modelo para exibição."""
-    if response is None:
-        return "Nenhuma resposta disponível."
-    if isinstance(response, dict):
-        summary = response.get("summary")
-        if isinstance(summary, str) and summary.strip():
-            return summary
-        try:
-            return json.dumps(response, ensure_ascii=False, indent=2)
-        except TypeError:
-            return str(response)
-    if isinstance(response, list):
-        try:
-            return json.dumps(response, ensure_ascii=False, indent=2)
-        except TypeError:
-            return str(response)
-    return str(response)
 
 
 def run_contract_agent(payment_info: dict) -> str:
@@ -167,6 +243,8 @@ with tab_form:
                 st.info(f"🔎 Processando análise para: **{cnpj_formatado}** | Valor: **R$ {valor_input:,.2f}**")
                 
                 conteudo_modelo = None
+                resumo_textual = "Resumo não disponível."
+                validacao_pagamento = {}
 
                 with st.spinner("🤖 Agente consultando contrato e validando regras..."):
                     payment_data = {
@@ -179,16 +257,19 @@ with tab_form:
                     resultado = run_contract_agent(payment_data)
                     conteudo_modelo = resultado.get("content")
 
-                    # Normaliza o conteúdo para formatos serializáveis
-                    if not isinstance(conteudo_modelo, (str, int, float, bool, list, dict)) and conteudo_modelo is not None:
-                        conteudo_modelo = str(conteudo_modelo)
+                    resumo_textual, validacao_pagamento = extract_summary_and_validation(
+                        conteudo_modelo
+                    )
+                    if validacao_pagamento is None:
+                        validacao_pagamento = {}
 
                     novo_registro = {
                         "cnpj": cnpj_formatado,
                         "valor": valor_input,
                         "data": data_input,
                         "status": resultado.get("status", "desconhecido"),
-                        "detalhes": conteudo_modelo
+                        "detalhes": resumo_textual,
+                        "validacao_pagamento": validacao_pagamento
                     }
 
                     st.session_state['historico_pagamentos'].append(novo_registro)
@@ -199,13 +280,13 @@ with tab_form:
                 # Exibição do Resultado Imediato
                 st.markdown("### 📋 Parecer do Agente")
                 with st.container(border=True):
-                    # Exibe o retorno completo ou apenas a análise textual
-                    if conteudo_modelo is None:
-                        st.write("Não foi possível obter a resposta do agente.")
-                    elif isinstance(conteudo_modelo, dict) and 'summary' in conteudo_modelo:
-                        st.write(conteudo_modelo['summary'])
+                    st.markdown(f"**Resumo:** {resumo_textual}")
+
+                    if validacao_pagamento:
+                        tabela_validacao = pd.DataFrame([validacao_pagamento])
+                        st.table(tabela_validacao)
                     else:
-                        st.write(conteudo_modelo)
+                        st.caption("Nenhuma informação adicional de validação disponível.")
 
 # ==============================================================================
 # ABA 2: DASHBOARD
@@ -258,16 +339,25 @@ with tab_dash:
                 st.caption("Nenhum registro encontrado.")
                 return
 
-            records = dataframe[['cnpj', 'data', 'detalhes']].to_dict('records')
+            records = dataframe[['cnpj', 'data', 'detalhes', 'validacao_pagamento']].to_dict('records')
             for record in records:
                 titulo = f"{record.get('cnpj', 'CNPJ desconhecido')} • {format_date_display(record.get('data'))}"
-                resposta_modelo = format_model_response(record.get('detalhes'))
+                resumo = record.get('detalhes')
+                if resumo is None:
+                    resumo = "Resumo não disponível."
+                else:
+                    resumo = str(resumo).strip() or "Resumo não disponível."
+
+                validacao_display = normalize_validation(record.get('validacao_pagamento'))
 
                 with st.expander(titulo):
-                    if resposta_modelo.strip().startswith('{') or resposta_modelo.strip().startswith('['):
-                        st.code(resposta_modelo, language="json")
+                    st.markdown(f"**Resumo:** {resumo}")
+
+                    if validacao_display:
+                        tabela_validacao = pd.DataFrame([validacao_display])
+                        st.table(tabela_validacao)
                     else:
-                        st.markdown(resposta_modelo)
+                        st.caption("Nenhuma informação de validação disponível.")
 
         with col_lists_1:
             render_segment("🔴 **Atenção Crítica (Atrasado + Valor Errado)**", seg_atrasado_valor_errado, "error")
