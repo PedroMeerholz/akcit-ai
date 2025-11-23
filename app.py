@@ -164,6 +164,67 @@ def format_date_display(value) -> str:
     return str(value)
 
 
+def format_currency_br(value: float) -> str:
+    """Formata valores monetários em BRL."""
+    return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def parse_amount_value(value) -> float:
+    """Normaliza diferentes representações de valores monetários."""
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return 0.0
+    if isinstance(value, (int, float)):
+        return float(value)
+
+    cleaned = str(value).strip()
+    if not cleaned:
+        return 0.0
+
+    cleaned = cleaned.replace("R$", "").replace("\u00a0", "").replace(" ", "")
+
+    numbers = re.findall(r"-?\d+(?:[.,]\d+)?", cleaned)
+    if not numbers:
+        return 0.0
+
+    number = numbers[-1]
+    if "," in number and "." in number:
+        if number.rfind(",") > number.rfind("."):
+            number = number.replace(".", "").replace(",", ".")
+        else:
+            number = number.replace(",", "")
+    else:
+        number = number.replace(",", ".")
+
+    try:
+        return float(number)
+    except ValueError:
+        return 0.0
+
+
+def get_amount_diff_from_validation(validation_value) -> float:
+    """Obtém o amount_diff já convertido para float a partir da validação."""
+    normalized = normalize_validation(validation_value)
+    if not normalized:
+        return 0.0
+
+    candidate_keys = (
+        "amount_diff",
+        "amount_difference",
+        "difference",
+        "valor_diferenca",
+        "valor_diferenca_absoluto",
+    )
+
+    for key in candidate_keys:
+        if key in normalized and normalized[key] not in (None, ""):
+            return parse_amount_value(normalized[key])
+
+    if "raw" in normalized and normalized["raw"]:
+        return parse_amount_value(normalized["raw"])
+
+    return 0.0
+
+
 def run_contract_agent(payment_info: dict) -> str:
     crew_instance = AgentCrew()
 
@@ -312,13 +373,20 @@ with tab_dash:
         # Segmento 4: Pagamento em dia com valor correto
         seg_em_dia_valor_correto = df[df['status'] == 'em_dia_valor_correto']
 
+        pagamentos_valor_errado = df[df['status'].isin(['atrasado_valor_errado', 'em_dia_valor_errado'])]
+        total_perda_valor_errado = 0.0
+        if 'validacao_pagamento' in pagamentos_valor_errado:
+            perdas_series = pagamentos_valor_errado['validacao_pagamento'].apply(get_amount_diff_from_validation)
+            total_perda_valor_errado = float(perdas_series.sum())
+
         # --- Métricas (KPIs) ---
-        kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+        kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
         
         kpi1.metric("Atrasado / Valor Errado 🚨", len(seg_atrasado_valor_errado))
         kpi2.metric("Em Dia / Valor Errado ⚠️", len(seg_em_dia_valor_errado))
         kpi3.metric("Atrasado / Valor Correto ⏱️", len(seg_atrasado_valor_correto))
         kpi4.metric("Em Dia / Valor Correto ✅", len(seg_em_dia_valor_correto))
+        kpi5.metric("Perdas com Valores Errados 💸", format_currency_br(total_perda_valor_errado))
         
         st.markdown("---")
         
