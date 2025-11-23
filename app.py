@@ -239,6 +239,33 @@ def get_amount_diff_from_validation(validation_value) -> float:
     return 0.0
 
 
+def get_payment_status_from_validation(validation_value) -> str:
+    """Obtém o status do pagamento a partir da validação."""
+    normalized = normalize_validation(validation_value)
+    if not normalized:
+        return "Desconhecido"
+
+    candidate_keys = (
+        "payment_status",
+        "status_pagamento",
+        "status",
+        "payment_status_label",
+    )
+
+    for key in candidate_keys:
+        value = normalized.get(key) if isinstance(normalized, dict) else None
+        if value:
+            return str(value)
+
+    raw_value = normalized.get("raw") if isinstance(normalized, dict) else None
+    if raw_value:
+        match = re.search(r"payment_status=['\"]?([\w_ .-]+)['\"]?", str(raw_value))
+        if match:
+            return match.group(1)
+
+    return "Desconhecido"
+
+
 def run_contract_agent(payment_info: dict) -> str:
     crew_instance = AgentCrew()
 
@@ -468,6 +495,65 @@ with tab_dash:
             render_segment("🔵 **Atenção no Prazo (Atrasado + Valor Correto)**", seg_atrasado_valor_correto, "info")
             st.markdown("<br>", unsafe_allow_html=True)
             render_segment("🟢 **Conformes (Em Dia + Valor Correto)**", seg_em_dia_valor_correto, "success")
+
+        st.markdown("---")
+        st.subheader("Tickets Recuperados")
+
+        if pagamentos_recuperados.empty:
+            st.caption("Nenhum ticket foi recuperado até o momento.")
+        else:
+            recuperados_exibicao = pagamentos_recuperados.copy()
+            recuperados_exibicao['payment_status_extraido'] = recuperados_exibicao['validacao_pagamento'].apply(
+                get_payment_status_from_validation
+            )
+
+            status_disponiveis = (
+                recuperados_exibicao['payment_status_extraido']
+                .fillna("Desconhecido")
+                .unique()
+                .tolist()
+            )
+            status_disponiveis.sort()
+            opcoes_filtro = ["Todos"] + status_disponiveis
+
+            status_selecionado = st.selectbox(
+                "Filtrar por status do pagamento",
+                options=opcoes_filtro,
+                key="filtro_tickets_recuperados"
+            )
+
+            if status_selecionado != "Todos":
+                recuperados_exibicao = recuperados_exibicao[
+                    recuperados_exibicao['payment_status_extraido'] == status_selecionado
+                ]
+
+            if recuperados_exibicao.empty:
+                st.caption("Nenhum ticket recuperado corresponde ao filtro selecionado.")
+            else:
+                for idx, record in recuperados_exibicao.iterrows():
+                    titulo = f"{record.get('cnpj', 'CNPJ desconhecido')} • {format_date_display(record.get('data'))}"
+                    resumo = record.get('detalhes')
+                    if resumo is None:
+                        resumo = "Resumo não disponível."
+                    else:
+                        resumo = str(resumo).strip() or "Resumo não disponível."
+
+                    validacao_display = normalize_validation(record.get('validacao_pagamento'))
+
+                    with st.expander(titulo):
+                        st.markdown(f"**Resumo:** {resumo}")
+
+                        if validacao_display:
+                            tabela_validacao = pd.DataFrame([validacao_display])
+                            st.table(tabela_validacao)
+                        else:
+                            st.caption("Nenhuma informação de validação disponível.")
+
+                        reopen_key = f"reopen_ticket_{idx}"
+                        if st.checkbox("Reabrir Ticket", key=reopen_key):
+                            st.session_state['historico_pagamentos'][idx]['status_ticket'] = "Em Aberto"
+                            save_history(st.session_state['historico_pagamentos'])
+                            trigger_rerun()
 
 # --- Rodapé ---
 st.markdown("---")

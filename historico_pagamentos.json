@@ -12,7 +12,7 @@
       "expected_value": "3055.17",
       "amount_diff": "555.17"
     },
-    "status_ticket": "Recuperado"
+    "status_ticket": "Em Aberto"
   },
   {
     "cnpj": "77.888.999/0001-00",
@@ -27,6 +27,6 @@
       "expected_value": "3050.14",
       "amount_diff": "1050.14"
     },
-    "status_ticket": "Em Aberto"
+    "status_ticket": "Recuperado"
   }
 ]
