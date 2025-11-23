@@ -120,6 +120,7 @@ def load_history() -> list[dict]:
                 )
                 item["detalhes"] = summary_text
                 item["validacao_pagamento"] = normalize_validation(validation_dict)
+                item["status_ticket"] = item.get("status_ticket", "Em Aberto")
 
             return history
         except (json.JSONDecodeError, ValueError):
@@ -142,6 +143,7 @@ def save_history(history: list[dict]) -> None:
         prepared_entry["validacao_pagamento"] = normalize_validation(
             prepared_entry.get("validacao_pagamento")
         ) or {}
+        prepared_entry["status_ticket"] = prepared_entry.get("status_ticket", "Em Aberto")
         serializable_history.append({
             key: _serialize(val) for key, val in prepared_entry.items()
         })
@@ -167,6 +169,18 @@ def format_date_display(value) -> str:
 def format_currency_br(value: float) -> str:
     """Formata valores monetários em BRL."""
     return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def trigger_rerun() -> None:
+    """Dispara a recarga da aplicação de forma compatível entre versões."""
+    rerun_fn = getattr(st, "rerun", None)
+    if callable(rerun_fn):
+        rerun_fn()
+        return
+
+    experimental_fn = getattr(st, "experimental_rerun", None)
+    if callable(experimental_fn):
+        experimental_fn()
 
 
 def parse_amount_value(value) -> float:
@@ -330,7 +344,8 @@ with tab_form:
                         "data": data_input,
                         "status": resultado.get("status", "desconhecido"),
                         "detalhes": resumo_textual,
-                        "validacao_pagamento": validacao_pagamento
+                        "validacao_pagamento": validacao_pagamento,
+                        "status_ticket": "Em Aberto"
                     }
 
                     st.session_state['historico_pagamentos'].append(novo_registro)
@@ -359,34 +374,46 @@ with tab_dash:
         st.warning("Nenhuma análise realizada ainda. Utilize a aba 'Nova Análise' para alimentar o dashboard.")
     else:
         df = pd.DataFrame(st.session_state['historico_pagamentos'])
+
+        if 'status_ticket' not in df.columns:
+            df['status_ticket'] = 'Em Aberto'
         
         # --- Definição dos Segmentos ---
-        # Segmento 1: Pagamentos atrasados com valor errado
-        seg_atrasado_valor_errado = df[df['status'] == 'atrasado_valor_errado']
-        
-        # Segmento 2: Pagamentos em dia com valor errado
-        seg_em_dia_valor_errado = df[df['status'] == 'em_dia_valor_errado']
-        
-        # Segmento 3: Pagamentos atrasados com valor correto
-        seg_atrasado_valor_correto = df[df['status'] == 'atrasado_valor_correto']
-        
-        # Segmento 4: Pagamento em dia com valor correto
-        seg_em_dia_valor_correto = df[df['status'] == 'em_dia_valor_correto']
+        df_aberto = df[df['status_ticket'] == 'Em Aberto']
 
-        pagamentos_valor_errado = df[df['status'].isin(['atrasado_valor_errado', 'em_dia_valor_errado'])]
+        # Segmento 1: Pagamentos atrasados com valor errado
+        seg_atrasado_valor_errado = df_aberto[df_aberto['status'] == 'atrasado_valor_errado']
+
+        # Segmento 2: Pagamentos em dia com valor errado
+        seg_em_dia_valor_errado = df_aberto[df_aberto['status'] == 'em_dia_valor_errado']
+
+        # Segmento 3: Pagamentos atrasados com valor correto
+        seg_atrasado_valor_correto = df_aberto[df_aberto['status'] == 'atrasado_valor_correto']
+
+        # Segmento 4: Pagamento em dia com valor correto
+        seg_em_dia_valor_correto = df_aberto[df_aberto['status'] == 'em_dia_valor_correto']
+
+        pagamentos_valor_errado = df_aberto[df_aberto['status'].isin(['atrasado_valor_errado', 'em_dia_valor_errado'])]
         total_perda_valor_errado = 0.0
-        if 'validacao_pagamento' in pagamentos_valor_errado:
+        if 'validacao_pagamento' in pagamentos_valor_errado.columns:
             perdas_series = pagamentos_valor_errado['validacao_pagamento'].apply(get_amount_diff_from_validation)
             total_perda_valor_errado = float(perdas_series.sum())
 
+        pagamentos_recuperados = df[df['status_ticket'] == 'Recuperado']
+        total_recuperado = 0.0
+        if not pagamentos_recuperados.empty and 'validacao_pagamento' in pagamentos_recuperados.columns:
+            recuperados_series = pagamentos_recuperados['validacao_pagamento'].apply(get_amount_diff_from_validation)
+            total_recuperado = float(recuperados_series.sum())
+
         # --- Métricas (KPIs) ---
-        kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
+        kpi1, kpi2, kpi3, kpi4, kpi5, kpi6 = st.columns(6)
         
         kpi1.metric("Atrasado / Valor Errado 🚨", len(seg_atrasado_valor_errado))
         kpi2.metric("Em Dia / Valor Errado ⚠️", len(seg_em_dia_valor_errado))
         kpi3.metric("Atrasado / Valor Correto ⏱️", len(seg_atrasado_valor_correto))
         kpi4.metric("Em Dia / Valor Correto ✅", len(seg_em_dia_valor_correto))
         kpi5.metric("Perdas com Valores Errados 💸", format_currency_br(total_perda_valor_errado))
+        kpi6.metric("Valores Recuperados ♻️", format_currency_br(total_recuperado))
         
         st.markdown("---")
         
@@ -407,8 +434,7 @@ with tab_dash:
                 st.caption("Nenhum registro encontrado.")
                 return
 
-            records = dataframe[['cnpj', 'data', 'detalhes', 'validacao_pagamento']].to_dict('records')
-            for record in records:
+            for idx, record in dataframe.iterrows():
                 titulo = f"{record.get('cnpj', 'CNPJ desconhecido')} • {format_date_display(record.get('data'))}"
                 resumo = record.get('detalhes')
                 if resumo is None:
@@ -426,6 +452,12 @@ with tab_dash:
                         st.table(tabela_validacao)
                     else:
                         st.caption("Nenhuma informação de validação disponível.")
+
+                    close_key = f"close_ticket_{idx}"
+                    if st.checkbox("Fechar Ticket", key=close_key):
+                        st.session_state['historico_pagamentos'][idx]['status_ticket'] = "Recuperado"
+                        save_history(st.session_state['historico_pagamentos'])
+                        trigger_rerun()
 
         with col_lists_1:
             render_segment("🔴 **Atenção Crítica (Atrasado + Valor Errado)**", seg_atrasado_valor_errado, "error")
