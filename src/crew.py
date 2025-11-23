@@ -5,10 +5,12 @@ from pydantic import BaseModel, Field
 
 from .tools.PaymentValidatorTool import PaymentValidatorTool
 from .tools.PineconeBGESearchTool import PineconeBGESearchTool
+from .tools.PaymentHistoryTool import PaymentHistoryTool
 
 
 pinecone_tool = PineconeBGESearchTool()
 payment_validator_tool = PaymentValidatorTool()
+payment_history_tool = PaymentHistoryTool()
 
 llm = LLM(
     model=os.getenv("GROQ_MODEL"),
@@ -37,6 +39,13 @@ class PaymentValidationResultSchema(BaseModel):
 
 class PaymentStatusSchema(BaseModel):
     summary: str = Field(..., description="Resumo do status do pagamento")
+    payment_validation: PaymentValidationResultSchema = Field(..., description="Detalhes da validação do pagamento")
+
+
+class CustomerBehaviorSchema(BaseModel):
+    analysis: str = Field(..., description="Análise detalhada do comportamento do cliente com base no histórico de pagamentos")
+    recommendations: str = Field(..., description="Recomendações sobre a abordagem a ser realizada com o cliente")
+    payment_summary: str = Field(..., description="Resumo do pagamento realizado pelo cliente")
     payment_validation: PaymentValidationResultSchema = Field(..., description="Detalhes da validação do pagamento")
 
 
@@ -80,6 +89,21 @@ class AgentCrew:
                       "Analise o resultado da validação do pagamento e retorne um resumo claro e direto do status do pagamento. "
                       "Neste resumo infome o cliente responsável pelo pagamento, o status do pagamento, o valor pago, o valor esperado e a diferença entre os valores.",
             verbose=True,
+            llm=llm
+        )
+
+
+    @agent
+    def customerBehaviorAgent(self) -> Agent:
+        return Agent(
+            role="Especialista em Comportamento do Cliente",
+            goal="Analisar o comportamento do cliente com base no histórico de pagamentos.",
+            backstory="Você é um analista meticuloso. "
+                      "Utilize o histórico de pagamentos para fornecer insights sobre o comportamento do cliente. "
+                      "Gere uma análise detalhada recomendando qual abordagem realizar com o cliente. "
+                      "Você SEMPRE usa a ferramenta de busca passando o CNPJ do cliente",
+            verbose=True,
+            tools=[payment_history_tool],
             llm=llm
         )
     
@@ -136,11 +160,30 @@ class AgentCrew:
         )
     
 
+    @task
+    def customerBehaviorTask(self) -> Task:
+        return Task(
+            description="Siga os passos estritos:\n"
+                        "1. Recupere o pagamento realizado pelo cliente (contexto).\n"
+                        "2. Utilize a ferramenta get_payment_history para recuperar o histórico de pagamentos do cliente.\n"
+                        "3. Forneça uma análise detalhada do comportamento do cliente com base no histórico de pagamentos e no pagamento recebido.\n"
+                        "4. Gere recomendações sobre a abordagem a ser realizada com o cliente.\n\n"
+                        "REGRAS CRÍTICAS DE FORMATAÇÃO:\n"
+                        "- NÃO gere um dicionário Python (não use aspas simples ').\n"
+                        "- GERE APENAS JSON VÁLIDO (use aspas duplas \").\n"
+                        "- Se a ferramenta retornar aspas simples, VOCÊ DEVE converter para aspas duplas.",
+            expected_output="Um JSON válido conforme o schema CustomerBehaviorSchema",
+            output_pydantic=CustomerBehaviorSchema,
+            agent=self.customerBehaviorAgent(),
+            context=[self.paymentTask()]
+        )
+    
+
     @crew
     def contractCrew(self) -> Crew:
         return Crew(
-            agents=[self.contractAgent(), self.paymentAgent()],
-            tasks=[self.contractTask(), self.paymentTask(), self.paymentStatusTask()],
+            agents=[self.contractAgent(), self.paymentAgent(), self.paymentStatusAgent(), self.customerBehaviorAgent()],
+            tasks=[self.contractTask(), self.paymentTask(), self.paymentStatusTask(), self.customerBehaviorTask()],
             process=Process.sequential,
             verbose=True
         )

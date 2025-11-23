@@ -77,29 +77,112 @@ def normalize_validation(validation_data):
     return {"raw": str(validation_data)}
 
 
-def extract_summary_and_validation(details_value, existing_validation=None):
-    """Retorna o resumo textual e os detalhes de validação estruturados."""
+def _extract_field_from_text(text: str, keys: tuple[str, ...]) -> str:
+    for key in keys:
+        pattern = rf"{key}=['\"]([^'\"]*)['\"]"
+        match = re.search(pattern, text)
+        if match:
+            return match.group(1).strip()
+    return ""
+
+
+def _normalize_text_spacing(value) -> str:
+    """Colapsa espaços e quebras de linha consecutivas em um único espaço."""
+    if value in (None, ""):
+        return ""
+
+    text = str(value)
+    normalized = re.sub(r"\s+", " ", text)
+    return normalized.strip()
+
+
+def parse_model_output_content(content, existing_validation=None):
+    """Extrai resumo, análise, recomendações e validação do conteúdo do modelo."""
     summary_text = ""
+    analysis_text = ""
+    recommendations_text = ""
     validation_dict = normalize_validation(existing_validation)
 
-    if isinstance(details_value, dict):
-        summary_text = (details_value.get("summary") or "").strip()
+    if isinstance(content, dict):
+        summary_text = str(content.get("payment_summary") or "").strip()
+        analysis_text = str(content.get("analysis") or "").strip()
+        recommendations_text = str(content.get("recommendations") or "").strip()
         if validation_dict is None:
-            validation_dict = normalize_validation(details_value.get("payment_validation"))
+            validation_dict = normalize_validation(content.get("payment_validation"))
 
-    elif isinstance(details_value, str):
-        summary_match = re.search(r"summary=['\"]([^'\"]*)['\"]", details_value)
-        summary_text = summary_match.group(1) if summary_match else details_value.strip()
-        if validation_dict is None:
-            validation_dict = normalize_validation(parse_validation_string(details_value))
+    elif isinstance(content, str):
+        text = content.strip()
+        if text:
+            summary_text = _extract_field_from_text(text, ("payment_summary", "summary"))
+            analysis_text = _extract_field_from_text(text, ("analysis", "behavior_analysis"))
+            recommendations_text = _extract_field_from_text(text, ("recommendations", "recommendation", "suggestions"))
 
-    elif details_value is not None:
-        summary_text = str(details_value)
+            if validation_dict is None:
+                validation_dict = normalize_validation(parse_validation_string(text))
 
-    if not summary_text:
-        summary_text = "Resumo não disponível."
+            if not summary_text and "=" not in text:
+                summary_text = text
+            elif not summary_text:
+                summary_text = _extract_field_from_text(text, ("payment_summary", "summary", "analysis"))
 
-    return summary_text, validation_dict
+    elif content is not None:
+        summary_text = str(content).strip()
+
+    if not summary_text and analysis_text:
+        summary_text = analysis_text
+    if not analysis_text and summary_text:
+        analysis_text = summary_text
+
+    summary_text = _normalize_text_spacing(summary_text)
+    analysis_text = _normalize_text_spacing(analysis_text)
+    recommendations_text = _normalize_text_spacing(recommendations_text)
+
+    validation_dict = validation_dict or {}
+
+    return summary_text, analysis_text, recommendations_text, validation_dict
+
+
+def normalize_entry_outputs(entry: dict) -> None:
+    """Garante que os campos de análise estejam presentes e normalizados."""
+    payment_summary = _normalize_text_spacing(entry.get("payment_summary") or "")
+    analysis_text = _normalize_text_spacing(entry.get("analysis") or "")
+    recommendations_text = _normalize_text_spacing(entry.get("recommendations") or "")
+    validation_dict = normalize_validation(entry.get("validacao_pagamento") or entry.get("payment_validation"))
+
+    candidates: list = []
+    if payment_summary or analysis_text or recommendations_text:
+        candidates.append({
+            "payment_summary": payment_summary,
+            "analysis": analysis_text,
+            "recommendations": recommendations_text,
+            "payment_validation": validation_dict,
+        })
+    if entry.get("detalhes"):
+        candidates.append(entry["detalhes"])
+
+    if not candidates:
+        candidates.append("")
+
+    for candidate in candidates:
+        parsed_summary, parsed_analysis, parsed_recommendations, parsed_validation = parse_model_output_content(
+            candidate,
+            existing_validation=validation_dict,
+        )
+        payment_summary = payment_summary or parsed_summary
+        analysis_text = analysis_text or parsed_analysis
+        recommendations_text = recommendations_text or parsed_recommendations
+        if not validation_dict:
+            validation_dict = parsed_validation
+
+    payment_summary = _normalize_text_spacing(payment_summary) or "Informação não disponível."
+    analysis_text = _normalize_text_spacing(analysis_text) or payment_summary
+    recommendations_text = _normalize_text_spacing(recommendations_text) or "Recomendação não disponível."
+
+    entry["payment_summary"] = payment_summary
+    entry["analysis"] = analysis_text
+    entry["recommendations"] = recommendations_text
+    entry["validacao_pagamento"] = validation_dict or {}
+    entry["detalhes"] = entry["payment_summary"]
 
 
 def load_history() -> list[dict]:
@@ -114,12 +197,7 @@ def load_history() -> list[dict]:
                 if isinstance(data_value, str):
                     item["data"] = date.fromisoformat(data_value)
 
-                summary_text, validation_dict = extract_summary_and_validation(
-                    item.get("detalhes"),
-                    item.get("validacao_pagamento")
-                )
-                item["detalhes"] = summary_text
-                item["validacao_pagamento"] = normalize_validation(validation_dict)
+                normalize_entry_outputs(item)
                 item["status_ticket"] = item.get("status_ticket", "Em Aberto")
 
             return history
@@ -140,10 +218,12 @@ def save_history(history: list[dict]) -> None:
     serializable_history = []
     for entry in history:
         prepared_entry = dict(entry)
+        normalize_entry_outputs(prepared_entry)
         prepared_entry["validacao_pagamento"] = normalize_validation(
             prepared_entry.get("validacao_pagamento")
         ) or {}
         prepared_entry["status_ticket"] = prepared_entry.get("status_ticket", "Em Aberto")
+        prepared_entry["detalhes"] = prepared_entry.get("payment_summary", "")
         serializable_history.append({
             key: _serialize(val) for key, val in prepared_entry.items()
         })
@@ -280,13 +360,13 @@ def run_contract_agent(payment_info: dict) -> str:
     }
 
 # --- Configuração da Página ---
-st.set_page_config(page_title="Contratos.IA", page_icon="⚖️", layout="wide")
+st.set_page_config(page_title="Verif.ai", layout="wide")
 
 # Inicializa histórico na sessão (carregando do arquivo, se existir)
 if 'historico_pagamentos' not in st.session_state:
     st.session_state['historico_pagamentos'] = load_history()
 
-st.title("⚖️ Contratos.IA")
+st.title("Verif.ai")
 st.markdown("### Gestão Inteligente de Fiscalização Contratual")
 st.markdown("---")
 
@@ -359,22 +439,32 @@ with tab_form:
                     resultado = run_contract_agent(payment_data)
                     conteudo_modelo = resultado.get("content")
 
-                    resumo_textual, validacao_pagamento = extract_summary_and_validation(
-                        conteudo_modelo
-                    )
-                    if validacao_pagamento is None:
-                        validacao_pagamento = {}
+                    (
+                        payment_summary_text,
+                        analysis_text,
+                        recommendations_text,
+                        validacao_pagamento,
+                    ) = parse_model_output_content(conteudo_modelo)
+
+                    payment_summary_text = _normalize_text_spacing(payment_summary_text) or "Informação não disponível."
+                    analysis_text = _normalize_text_spacing(analysis_text) or payment_summary_text
+                    recommendations_text = _normalize_text_spacing(recommendations_text) or "Recomendação não disponível."
+                    validacao_pagamento = validacao_pagamento or {}
 
                     novo_registro = {
                         "cnpj": cnpj_formatado,
                         "valor": valor_input,
                         "data": data_input,
                         "status": resultado.get("status", "desconhecido"),
-                        "detalhes": resumo_textual,
+                        "payment_summary": payment_summary_text,
+                        "analysis": analysis_text,
+                        "recommendations": recommendations_text,
                         "validacao_pagamento": validacao_pagamento,
+                        "detalhes": payment_summary_text,
                         "status_ticket": "Em Aberto"
                     }
 
+                    normalize_entry_outputs(novo_registro)
                     st.session_state['historico_pagamentos'].append(novo_registro)
                     save_history(st.session_state['historico_pagamentos'])
                 
@@ -383,7 +473,9 @@ with tab_form:
                 # Exibição do Resultado Imediato
                 st.markdown("### 📋 Parecer do Agente")
                 with st.container(border=True):
-                    st.markdown(f"**Resumo:** {resumo_textual}")
+                    st.text(f"Análise do pagamento: {payment_summary_text}")
+                    st.text(f"Análise comportamental: {analysis_text}")
+                    st.text(f"Recomendação de abordagem: {recommendations_text}")
 
                     if validacao_pagamento:
                         tabela_validacao = pd.DataFrame([validacao_pagamento])
@@ -463,16 +555,22 @@ with tab_dash:
 
             for idx, record in dataframe.iterrows():
                 titulo = f"{record.get('cnpj', 'CNPJ desconhecido')} • {format_date_display(record.get('data'))}"
-                resumo = record.get('detalhes')
-                if resumo is None:
-                    resumo = "Resumo não disponível."
-                else:
-                    resumo = str(resumo).strip() or "Resumo não disponível."
+                payment_summary_display = _normalize_text_spacing(
+                    record.get('payment_summary') or record.get('detalhes') or ""
+                ) or "Informação não disponível."
+                analysis_display = _normalize_text_spacing(
+                    record.get('analysis') or payment_summary_display
+                ) or payment_summary_display
+                recommendations_display = _normalize_text_spacing(
+                    record.get('recommendations') or ""
+                ) or "Recomendação não disponível."
 
                 validacao_display = normalize_validation(record.get('validacao_pagamento'))
 
                 with st.expander(titulo):
-                    st.markdown(f"**Resumo:** {resumo}")
+                    st.text(f"Análise do pagamento: {payment_summary_display}")
+                    st.text(f"Análise comportamental: {analysis_display}")
+                    st.text(f"Recomendação de abordagem: {recommendations_display}")
 
                     if validacao_display:
                         tabela_validacao = pd.DataFrame([validacao_display])
@@ -532,16 +630,22 @@ with tab_dash:
             else:
                 for idx, record in recuperados_exibicao.iterrows():
                     titulo = f"{record.get('cnpj', 'CNPJ desconhecido')} • {format_date_display(record.get('data'))}"
-                    resumo = record.get('detalhes')
-                    if resumo is None:
-                        resumo = "Resumo não disponível."
-                    else:
-                        resumo = str(resumo).strip() or "Resumo não disponível."
+                    payment_summary_display = _normalize_text_spacing(
+                        record.get('payment_summary') or record.get('detalhes') or ""
+                    ) or "Informação não disponível."
+                    analysis_display = _normalize_text_spacing(
+                        record.get('analysis') or payment_summary_display
+                    ) or payment_summary_display
+                    recommendations_display = _normalize_text_spacing(
+                        record.get('recommendations') or ""
+                    ) or "Recomendação não disponível."
 
                     validacao_display = normalize_validation(record.get('validacao_pagamento'))
 
                     with st.expander(titulo):
-                        st.markdown(f"**Resumo:** {resumo}")
+                        st.text(f"Análise do pagamento: {payment_summary_display}")
+                        st.text(f"Análise comportamental: {analysis_display}")
+                        st.text(f"Recomendação de abordagem: {recommendations_display}")
 
                         if validacao_display:
                             tabela_validacao = pd.DataFrame([validacao_display])

@@ -4,7 +4,9 @@
     "valor": 2500.0,
     "data": "2025-11-21",
     "status": "atrasado_valor_errado",
-    "detalhes": "O pagamento do cliente StartEduca Cursos Online está atrasado e com valor incorreto. Foi pago R$ 2500.0, enquanto o esperado era R$ 3055.17, resultando em uma diferença de R$ 555.17.",
+    "payment_summary": "O pagamento do cliente StartEduca Cursos Online está atrasado e com valor incorreto. Foi pago R$ 2500.0, enquanto o esperado era R$ 3055.17, resultando em uma diferença de R$ 555.17.",
+    "analysis": "O cliente apresenta recorrência de pagamentos atrasados com diferenças negativas, sugerindo necessidade de acompanhamento próximo.",
+    "recommendations": "Entrar em contato para regularizar o valor pendente e reforçar o calendário de pagamentos.",
     "validacao_pagamento": {
       "customer": "StartEduca Cursos Online",
       "payment_status": "atrasado_valor_incorreto",
@@ -12,6 +14,7 @@
       "expected_value": "3055.17",
       "amount_diff": "555.17"
     },
+    "detalhes": "O pagamento do cliente StartEduca Cursos Online está atrasado e com valor incorreto. Foi pago R$ 2500.0, enquanto o esperado era R$ 3055.17, resultando em uma diferença de R$ 555.17.",
     "status_ticket": "Em Aberto"
   },
   {
@@ -19,7 +22,9 @@
     "valor": 2000.0,
     "data": "2025-11-20",
     "status": "atrasado_valor_errado",
-    "detalhes": "Pagamento de StartEduca Cursos Online está atrasado e com valor incorreto.",
+    "payment_summary": "Pagamento de StartEduca Cursos Online está atrasado e com valor incorreto.",
+    "analysis": "Há histórico recente de inadimplência e valores divergentes nas remessas do cliente.",
+    "recommendations": "Negociar plano de regularização e monitorar próximos pagamentos.",
     "validacao_pagamento": {
       "customer": "StartEduca Cursos Online",
       "payment_status": "atrasado_valor_incorreto",
@@ -27,6 +32,43 @@
       "expected_value": "3050.14",
       "amount_diff": "1050.14"
     },
+    "detalhes": "Pagamento de StartEduca Cursos Online está atrasado e com valor incorreto.",
     "status_ticket": "Recuperado"
+  },
+  {
+    "cnpj": "77.888.999/0001-00",
+    "valor": 20000.0,
+    "data": "2025-11-23",
+    "status": "atrasado_valor_errado",
+    "payment_summary": "Pagamento recente apresenta atraso e valor divergente em relação ao faturamento previsto.",
+    "analysis": "O cliente StartEduca Cursos Online apresenta um histórico de pagamentos irregular, com um pagamento recente atrasado e com valor incorreto. Isso pode indicar dificuldades financeiras ou problemas de comunicação.",
+    "recommendations": "Entrar em contato com o cliente para discutir o pagamento atrasado e oferecer suporte financeiro ou ajustes de plano, revisando também os processos de comunicação.",
+    "validacao_pagamento": {},
+    "detalhes": "Pagamento recente apresenta atraso e valor divergente em relação ao faturamento previsto.",
+    "status_ticket": "Recuperado"
+  },
+  {
+    "cnpj": "77.888.999/0001-00",
+    "valor": 2000.0,
+    "data": "2025-11-23",
+    "status": "atrasado_valor_errado",
+    "payment_summary": "O cliente realizou um pagamento de R$ 2000,00, mas o valor esperado era de R$ 3038,90, resultando em uma diferença de R$ 1038,90.",
+    "analysis": "O cliente StartEduca Cursos Online apresenta um padrão de pagamentos atrasados e com valores incorretos, sugerindo dificuldades financeiras ou problemas operacionais.",
+    "recommendations": "Entrar em contato para entender as dificuldades e orientar a regularização, revisando o processo de pagamento para evitar novos erros.",
+    "validacao_pagamento": {},
+    "detalhes": "O cliente realizou um pagamento de R$ 2000,00, mas o valor esperado era de R$ 3038,90, resultando em uma diferença de R$ 1038,90.",
+    "status_ticket": "Recuperado"
+  },
+  {
+    "cnpj": "77.888.999/0001-00",
+    "valor": 2000.0,
+    "data": "2025-11-23",
+    "status": "atrasado_valor_errado",
+    "payment_summary": "Pagamento de R$ 2000,00 realizado pelo cliente StartEduca Cursos Online, com valor esperado de R$ 3038,90 e diferença de R$ 1038,90.",
+    "analysis": "O cliente tem histórico de pagamentos atrasados e valores incorretos, reforçando a necessidade de acompanhamento próximo.",
+    "recommendations": "Discutir o pagamento atrasado, oferecer opções de regularização e alinhar expectativas sobre valores futuros.",
+    "validacao_pagamento": {},
+    "detalhes": "Pagamento de R$ 2000,00 realizado pelo cliente StartEduca Cursos Online, com valor esperado de R$ 3038,90 e diferença de R$ 1038,90.",
+    "status_ticket": "Em Aberto"
   }
 ]

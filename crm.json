@@ -1,0 +1,552 @@
+[
+  {
+    "cnpj_cliente": "00.111.222/0001-33",
+    "razao_social": "Coworking Espaço Criativo",
+    "id_contrato": "2025-010-J",
+    "historico_pagamento": [
+      {
+        "competencia": "06/2025",
+        "vencimento": "10",
+        "data_pagamento": "10/06/2025",
+        "valor_devido": 5500.0,
+        "valor_pago": 5500.0,
+        "status": "PONTUAL"
+      },
+      {
+        "competencia": "07/2025",
+        "vencimento": "10",
+        "data_pagamento": "09/07/2025",
+        "valor_devido": 5500.0,
+        "valor_pago": 5500.0,
+        "status": "ANTECIPADO"
+      },
+      {
+        "competencia": "08/2025",
+        "vencimento": "10",
+        "data_pagamento": "11/08/2025",
+        "valor_devido": 5500.0,
+        "valor_pago": 5500.0,
+        "status": "PONTUAL"
+      },
+      {
+        "competencia": "09/2025",
+        "vencimento": "10",
+        "data_pagamento": "10/09/2025",
+        "valor_devido": 5500.0,
+        "valor_pago": 5500.0,
+        "status": "PONTUAL"
+      },
+      {
+        "competencia": "10/2025",
+        "vencimento": "10",
+        "data_pagamento": "08/10/2025",
+        "valor_devido": 5500.0,
+        "valor_pago": 5500.0,
+        "status": "ANTECIPADO"
+      },
+      {
+        "competencia": "11/2025",
+        "vencimento": "10",
+        "data_pagamento": "10/11/2025",
+        "valor_devido": 5500.0,
+        "valor_pago": 5500.0,
+        "status": "PONTUAL"
+      }
+    ]
+  },
+  {
+    "cnpj_cliente": "88.999.000/0001-11",
+    "razao_social": "Construtora Solidus",
+    "id_contrato": "2025-008-H",
+    "historico_pagamento": [
+      {
+        "competencia": "06/2025",
+        "vencimento": "25",
+        "data_pagamento": "25/06/2025",
+        "valor_devido": 12000.0,
+        "valor_pago": 12000.0,
+        "status": "PONTUAL"
+      },
+      {
+        "competencia": "07/2025",
+        "vencimento": "25",
+        "data_pagamento": "28/07/2025",
+        "valor_devido": 12000.0,
+        "valor_pago": 12000.0,
+        "status": "ATRASADO"
+      },
+      {
+        "competencia": "08/2025",
+        "vencimento": "25",
+        "data_pagamento": "25/08/2025",
+        "valor_devido": 12000.0,
+        "valor_pago": 12000.0,
+        "status": "PONTUAL"
+      },
+      {
+        "competencia": "09/2025",
+        "vencimento": "25",
+        "data_pagamento": "25/09/2025",
+        "valor_devido": 12000.0,
+        "valor_pago": 12000.0,
+        "status": "PONTUAL"
+      },
+      {
+        "competencia": "10/2025",
+        "vencimento": "25",
+        "data_pagamento": "30/10/2025",
+        "valor_devido": 12000.0,
+        "valor_pago": 12000.0,
+        "status": "ATRASADO"
+      },
+      {
+        "competencia": "11/2025",
+        "vencimento": "25",
+        "data_pagamento": "25/11/2025",
+        "valor_devido": 12000.0,
+        "valor_pago": 12000.0,
+        "status": "PONTUAL"
+      }
+    ]
+  },
+  {
+    "cnpj_cliente": "55.666.777/0001-88",
+    "razao_social": "Restaurante Sabor Caseiro",
+    "id_contrato": "2025-005-E",
+    "historico_pagamento": [
+      {
+        "competencia": "06/2025",
+        "vencimento": "10",
+        "data_pagamento": "15/06/2025",
+        "valor_devido": 1800.0,
+        "valor_pago": 1800.0,
+        "status": "ATRASADO"
+      },
+      {
+        "competencia": "07/2025",
+        "vencimento": "10",
+        "data_pagamento": "20/07/2025",
+        "valor_devido": 1800.0,
+        "valor_pago": 1800.0,
+        "status": "ATRASADO"
+      },
+      {
+        "competencia": "08/2025",
+        "vencimento": "10",
+        "data_pagamento": "11/08/2025",
+        "valor_devido": 1800.0,
+        "valor_pago": 1800.0,
+        "status": "PONTUAL"
+      },
+      {
+        "competencia": "09/2025",
+        "vencimento": "10",
+        "data_pagamento": "18/09/2025",
+        "valor_devido": 1800.0,
+        "valor_pago": 1800.0,
+        "status": "ATRASADO"
+      },
+      {
+        "competencia": "10/2025",
+        "vencimento": "10",
+        "data_pagamento": "10/10/2025",
+        "valor_devido": 1800.0,
+        "valor_pago": 1800.0,
+        "status": "PONTUAL"
+      },
+      {
+        "competencia": "11/2025",
+        "vencimento": "10",
+        "data_pagamento": "14/11/2025",
+        "valor_devido": 1800.0,
+        "valor_pago": 1800.0,
+        "status": "ATRASADO"
+      }
+    ]
+  },
+  {
+    "cnpj_cliente": "11.222.333/0001-00",
+    "razao_social": "Advocacia Mendes & Associados",
+    "id_contrato": "2025-003-C",
+    "historico_pagamento": [
+      {
+        "competencia": "06/2025",
+        "vencimento": "15",
+        "data_pagamento": "13/06/2025",
+        "valor_devido": 4200.0,
+        "valor_pago": 4200.0,
+        "status": "ANTECIPADO"
+      },
+      {
+        "competencia": "07/2025",
+        "vencimento": "15",
+        "data_pagamento": "15/07/2025",
+        "valor_devido": 4200.0,
+        "valor_pago": 4200.0,
+        "status": "PONTUAL"
+      },
+      {
+        "competencia": "08/2025",
+        "vencimento": "15",
+        "data_pagamento": "15/08/2025",
+        "valor_devido": 4200.0,
+        "valor_pago": 4200.0,
+        "status": "PONTUAL"
+      },
+      {
+        "competencia": "09/2025",
+        "vencimento": "15",
+        "data_pagamento": "15/09/2025",
+        "valor_devido": 4200.0,
+        "valor_pago": 4200.0,
+        "status": "PONTUAL"
+      },
+      {
+        "competencia": "10/2025",
+        "vencimento": "15",
+        "data_pagamento": "15/10/2025",
+        "valor_devido": 4200.0,
+        "valor_pago": 4200.0,
+        "status": "PONTUAL"
+      },
+      {
+        "competencia": "11/2025",
+        "vencimento": "15",
+        "data_pagamento": "14/11/2025",
+        "valor_devido": 4200.0,
+        "valor_pago": 4200.0,
+        "status": "ANTECIPADO"
+      }
+    ]
+  },
+  {
+    "cnpj_cliente": "12.345.678/0001-90",
+    "razao_social": "Mercado Silva Ltda",
+    "id_contrato": "2025-001-A",
+    "historico_pagamento": [
+      {
+        "competencia": "06/2025",
+        "vencimento": "05",
+        "data_pagamento": "15/06/2025",
+        "valor_devido": 2500.0,
+        "valor_pago": 2500.0,
+        "status": "ATRASADO"
+      },
+      {
+        "competencia": "07/2025",
+        "vencimento": "05",
+        "data_pagamento": "12/07/2025",
+        "valor_devido": 2500.0,
+        "valor_pago": 2500.0,
+        "status": "ATRASADO"
+      },
+      {
+        "competencia": "08/2025",
+        "vencimento": "05",
+        "data_pagamento": "20/08/2025",
+        "valor_devido": 2500.0,
+        "valor_pago": 2500.0,
+        "status": "ATRASADO"
+      },
+      {
+        "competencia": "09/2025",
+        "vencimento": "05",
+        "data_pagamento": "10/09/2025",
+        "valor_devido": 2500.0,
+        "valor_pago": 2500.0,
+        "status": "ATRASADO"
+      },
+      {
+        "competencia": "10/2025",
+        "vencimento": "05",
+        "data_pagamento": "15/10/2025",
+        "valor_devido": 2500.0,
+        "valor_pago": 2500.0,
+        "status": "ATRASADO"
+      },
+      {
+        "competencia": "11/2025",
+        "vencimento": "05",
+        "data_pagamento": "10/11/2025",
+        "valor_devido": 2500.0,
+        "valor_pago": 2500.0,
+        "status": "ATRASADO"
+      }
+    ]
+  },
+  {
+    "cnpj_cliente": "77.888.999/0001-00",
+    "razao_social": "StartEduca Cursos Online",
+    "id_contrato": "2025-007-G",
+    "historico_pagamento": [
+      {
+        "competencia": "06/2025",
+        "vencimento": "10",
+        "data_pagamento": "10/06/2025",
+        "valor_devido": 3000.0,
+        "valor_pago": 3000.0,
+        "status": "PONTUAL"
+      },
+      {
+        "competencia": "07/2025",
+        "vencimento": "10",
+        "data_pagamento": "12/07/2025",
+        "valor_devido": 3000.0,
+        "valor_pago": 3000.0,
+        "status": "ATRASADO"
+      },
+      {
+        "competencia": "08/2025",
+        "vencimento": "10",
+        "data_pagamento": "11/08/2025",
+        "valor_devido": 3000.0,
+        "valor_pago": 3000.0,
+        "status": "PONTUAL"
+      },
+      {
+        "competencia": "09/2025",
+        "vencimento": "10",
+        "data_pagamento": "10/09/2025",
+        "valor_devido": 3000.0,
+        "valor_pago": 3000.0,
+        "status": "PONTUAL"
+      },
+      {
+        "competencia": "10/2025",
+        "vencimento": "10",
+        "data_pagamento": "15/10/2025",
+        "valor_devido": 3000.0,
+        "valor_pago": 3000.0,
+        "status": "ATRASADO"
+      },
+      {
+        "competencia": "11/2025",
+        "vencimento": "10",
+        "data_pagamento": "10/11/2025",
+        "valor_devido": 3000.0,
+        "valor_pago": 3000.0,
+        "status": "PONTUAL"
+      }
+    ]
+  },
+  {
+    "cnpj_cliente": "99.000.111/0001-22",
+    "razao_social": "Padaria e Confeitaria Doce Vida",
+    "id_contrato": "2025-009-1",
+    "historico_pagamento": [
+      {
+        "competencia": "06/2025",
+        "vencimento": "05",
+        "data_pagamento": "20/06/2025",
+        "valor_devido": 900.0,
+        "valor_pago": 900.0,
+        "status": "ATRASADO"
+      },
+      {
+        "competencia": "07/2025",
+        "vencimento": "05",
+        "data_pagamento": "25/07/2025",
+        "valor_devido": 900.0,
+        "valor_pago": 900.0,
+        "status": "ATRASADO"
+      },
+      {
+        "competencia": "08/2025",
+        "vencimento": "05",
+        "data_pagamento": "15/08/2025",
+        "valor_devido": 900.0,
+        "valor_pago": 900.0,
+        "status": "ATRASADO"
+      },
+      {
+        "competencia": "09/2025",
+        "vencimento": "05",
+        "data_pagamento": "10/09/2025",
+        "valor_devido": 900.0,
+        "valor_pago": 900.0,
+        "status": "ATRASADO"
+      },
+      {
+        "competencia": "10/2025",
+        "vencimento": "05",
+        "data_pagamento": "20/10/2025",
+        "valor_devido": 900.0,
+        "valor_pago": 900.0,
+        "status": "ATRASADO"
+      },
+      {
+        "competencia": "11/2025",
+        "vencimento": "05",
+        "data_pagamento": "15/11/2025",
+        "valor_devido": 900.0,
+        "valor_pago": 900.0,
+        "status": "ATRASADO"
+      }
+    ]
+  },
+  {
+    "cnpj_cliente": "44.555.666/0001-77",
+    "razao_social": "Clínica Saúde Total",
+    "id_contrato": "2025-004-D",
+    "historico_pagamento": [
+      {
+        "competencia": "06/2025",
+        "vencimento": "05",
+        "data_pagamento": "05/06/2025",
+        "valor_devido": 8000.0,
+        "valor_pago": 8000.0,
+        "status": "PONTUAL"
+      },
+      {
+        "competencia": "07/2025",
+        "vencimento": "05",
+        "data_pagamento": "04/07/2025",
+        "valor_devido": 8000.0,
+        "valor_pago": 8000.0,
+        "status": "ANTECIPADO"
+      },
+      {
+        "competencia": "08/2025",
+        "vencimento": "05",
+        "data_pagamento": "05/08/2025",
+        "valor_devido": 8000.0,
+        "valor_pago": 8000.0,
+        "status": "PONTUAL"
+      },
+      {
+        "competencia": "09/2025",
+        "vencimento": "05",
+        "data_pagamento": "05/09/2025",
+        "valor_devido": 8000.0,
+        "valor_pago": 8000.0,
+        "status": "PONTUAL"
+      },
+      {
+        "competencia": "10/2025",
+        "vencimento": "05",
+        "data_pagamento": "03/10/2025",
+        "valor_devido": 8000.0,
+        "valor_pago": 8000.0,
+        "status": "ANTECIPADO"
+      },
+      {
+        "competencia": "11/2025",
+        "vencimento": "05",
+        "data_pagamento": "05/11/2025",
+        "valor_devido": 8000.0,
+        "valor_pago": 8000.0,
+        "status": "PONTUAL"
+      }
+    ]
+  },
+  {
+    "cnpj_cliente": "98.765.432/0001-10",
+    "razao_social": "Tech Solutions S.A.",
+    "id_contrato": "2025-002-B",
+    "historico_pagamento": [
+      {
+        "competencia": "06/2025",
+        "vencimento": "10",
+        "data_pagamento": "05/06/2025",
+        "valor_devido": 15000.0,
+        "valor_pago": 15000.0,
+        "status": "ANTECIPADO"
+      },
+      {
+        "competencia": "07/2025",
+        "vencimento": "10",
+        "data_pagamento": "05/07/2025",
+        "valor_devido": 15000.0,
+        "valor_pago": 15000.0,
+        "status": "ANTECIPADO"
+      },
+      {
+        "competencia": "08/2025",
+        "vencimento": "10",
+        "data_pagamento": "05/08/2025",
+        "valor_devido": 15000.0,
+        "valor_pago": 15000.0,
+        "status": "ANTECIPADO"
+      },
+      {
+        "competencia": "09/2025",
+        "vencimento": "10",
+        "data_pagamento": "05/09/2025",
+        "valor_devido": 15000.0,
+        "valor_pago": 15000.0,
+        "status": "ANTECIPADO"
+      },
+      {
+        "competencia": "10/2025",
+        "vencimento": "10",
+        "data_pagamento": "05/10/2025",
+        "valor_devido": 15000.0,
+        "valor_pago": 15000.0,
+        "status": "ANTECIPADO"
+      },
+      {
+        "competencia": "11/2025",
+        "vencimento": "10",
+        "data_pagamento": "05/11/2025",
+        "valor_devido": 15000.0,
+        "valor_pago": 15000.0,
+        "status": "ANTECIPADO"
+      }
+    ]
+  },
+  {
+    "cnpj_cliente": "66.777.888/0001-99",
+    "razao_social": "Transportadora Veloz",
+    "id_contrato": "2025-006-F",
+    "historico_pagamento": [
+      {
+        "competencia": "06/2025",
+        "vencimento": "20",
+        "data_pagamento": "20/06/2025",
+        "valor_devido": 6500.0,
+        "valor_pago": 6500.0,
+        "status": "PONTUAL"
+      },
+      {
+        "competencia": "07/2025",
+        "vencimento": "20",
+        "data_pagamento": "22/07/2025",
+        "valor_devido": 6500.0,
+        "valor_pago": 6500.00,
+        "status": "ATRASADO"
+      },
+      {
+        "competencia": "08/2025",
+        "vencimento": "20",
+        "data_pagamento": "21/08/2025",
+        "valor_devido": 6500.0,
+        "valor_pago": 6500.00,
+        "status": "ATRASADO"
+      },
+      {
+        "competencia": "09/2025",
+        "vencimento": "20",
+        "data_pagamento": "20/09/2025",
+        "valor_devido": 6500.0,
+        "valor_pago": 6500.0,
+        "status": "PONTUAL"
+      },
+      {
+        "competencia": "10/2025",
+        "vencimento": "20",
+        "data_pagamento": "23/10/2025",
+        "valor_devido": 6500.0,
+        "valor_pago": 6500.0,
+        "status": "ATRASADO"
+      },
+      {
+        "competencia": "11/2025",
+        "vencimento": "20",
+        "data_pagamento": "20/11/2025",
+        "valor_devido": 6500.0,
+        "valor_pago": 6500.0,
+        "status": "PONTUAL"
+      }
+    ]
+  }
+]
