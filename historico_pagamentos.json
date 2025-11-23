@@ -1,0 +1,9 @@
+[
+  {
+    "cnpj": "77.888.999/0001-00",
+    "valor": 2000.0,
+    "data": "2025-11-12",
+    "status": "atrasado_valor_errado",
+    "detalhes": "summary='O cliente StartEduca Cursos Online realizou um pagamento no valor de 2000.0, porém o valor esperado era de 3005.98. O pagamento está atrasado e com valor incorreto, resultando numa diferença de 1005.98.'"
+  }
+]

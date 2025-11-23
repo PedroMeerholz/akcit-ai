@@ -1,7 +1,91 @@
+import json
+from datetime import date, datetime
+from pathlib import Path
+
 import pandas as pd
 import streamlit as st
 
 from src.crew import AgentCrew
+
+
+# --- Persistência de histórico ---
+HISTORY_PATH = Path("historico_pagamentos.json")
+
+
+def _ensure_history_path() -> None:
+    """Garante que o diretório destino do arquivo de histórico exista."""
+    parent_dir = HISTORY_PATH.parent
+    if parent_dir != Path('.'):
+        parent_dir.mkdir(parents=True, exist_ok=True)
+
+
+def load_history() -> list[dict]:
+    """Carrega o histórico de análises do arquivo JSON, se existir."""
+    if HISTORY_PATH.exists():
+        try:
+            with HISTORY_PATH.open("r", encoding="utf-8") as file:
+                history = json.load(file)
+            # Normaliza datas salvas como string ISO para objetos date
+            for item in history:
+                data_value = item.get("data")
+                if isinstance(data_value, str):
+                    item["data"] = date.fromisoformat(data_value)
+            return history
+        except (json.JSONDecodeError, ValueError):
+            return []
+    return []
+
+
+def save_history(history: list[dict]) -> None:
+    """Persiste o histórico de análises em arquivo JSON."""
+    _ensure_history_path()
+
+    def _serialize(value):
+        if isinstance(value, date):
+            return value.isoformat()
+        return value
+
+    serializable_history = [
+        {key: _serialize(val) for key, val in entry.items()}
+        for entry in history
+    ]
+
+    with HISTORY_PATH.open("w", encoding="utf-8") as file:
+        json.dump(serializable_history, file, ensure_ascii=False, indent=2)
+
+
+def format_date_display(value) -> str:
+    """Formata qualquer representação de data para DD/MM/YYYY."""
+    if isinstance(value, datetime):
+        return value.strftime("%d/%m/%Y")
+    if isinstance(value, date):
+        return value.strftime("%d/%m/%Y")
+    if isinstance(value, str):
+        try:
+            return pd.to_datetime(value).strftime("%d/%m/%Y")
+        except Exception:
+            return value
+    return str(value)
+
+
+def format_model_response(response) -> str:
+    """Prepara o conteúdo retornado pelo modelo para exibição."""
+    if response is None:
+        return "Nenhuma resposta disponível."
+    if isinstance(response, dict):
+        summary = response.get("summary")
+        if isinstance(summary, str) and summary.strip():
+            return summary
+        try:
+            return json.dumps(response, ensure_ascii=False, indent=2)
+        except TypeError:
+            return str(response)
+    if isinstance(response, list):
+        try:
+            return json.dumps(response, ensure_ascii=False, indent=2)
+        except TypeError:
+            return str(response)
+    return str(response)
 
 
 def run_contract_agent(payment_info: dict) -> str:
@@ -20,9 +104,9 @@ def run_contract_agent(payment_info: dict) -> str:
 # --- Configuração da Página ---
 st.set_page_config(page_title="Contratos.IA", page_icon="⚖️", layout="wide")
 
-# Inicializa histórico na sessão se não existir
+# Inicializa histórico na sessão (carregando do arquivo, se existir)
 if 'historico_pagamentos' not in st.session_state:
-    st.session_state['historico_pagamentos'] = []
+    st.session_state['historico_pagamentos'] = load_history()
 
 st.title("⚖️ Contratos.IA")
 st.markdown("### Gestão Inteligente de Fiscalização Contratual")
@@ -68,6 +152,8 @@ with tab_form:
     if btn_consultar:
         if not cnpj_input:
             st.error("⚠️ Por favor, insira um CNPJ válido.")
+        elif data_input is None:
+            st.error("⚠️ Por favor, selecione a data do pagamento.")
         else:
             cnpj_limpo = ''.join(filter(str.isdigit, cnpj_input))
             
@@ -80,8 +166,9 @@ with tab_form:
                 st.markdown("---")
                 st.info(f"🔎 Processando análise para: **{cnpj_formatado}** | Valor: **R$ {valor_input:,.2f}**")
                 
+                conteudo_modelo = None
+
                 with st.spinner("🤖 Agente consultando contrato e validando regras..."):
-                    
                     payment_data = {
                         "cnpj": cnpj_formatado,
                         "data_pagamento": data_input.strftime("%d/%m/%Y"),
@@ -90,15 +177,22 @@ with tab_form:
                     
                     # Chamada da função original
                     resultado = run_contract_agent(payment_data)
-                    
-                    # Armazenar no histórico da sessão para o Dashboard
-                    st.session_state['historico_pagamentos'].append({
+                    conteudo_modelo = resultado.get("content")
+
+                    # Normaliza o conteúdo para formatos serializáveis
+                    if not isinstance(conteudo_modelo, (str, int, float, bool, list, dict)) and conteudo_modelo is not None:
+                        conteudo_modelo = str(conteudo_modelo)
+
+                    novo_registro = {
                         "cnpj": cnpj_formatado,
                         "valor": valor_input,
                         "data": data_input,
-                        "status": resultado.get("status", "desconhecido"), # Assumindo que retorna dict
-                        "detalhes": resultado.get("content")
-                    })
+                        "status": resultado.get("status", "desconhecido"),
+                        "detalhes": conteudo_modelo
+                    }
+
+                    st.session_state['historico_pagamentos'].append(novo_registro)
+                    save_history(st.session_state['historico_pagamentos'])
                 
                 st.success("✅ Análise concluída!")
                 
@@ -106,7 +200,12 @@ with tab_form:
                 st.markdown("### 📋 Parecer do Agente")
                 with st.container(border=True):
                     # Exibe o retorno completo ou apenas a análise textual
-                    st.write(resultado.get("content")['summary'])
+                    if conteudo_modelo is None:
+                        st.write("Não foi possível obter a resposta do agente.")
+                    elif isinstance(conteudo_modelo, dict) and 'summary' in conteudo_modelo:
+                        st.write(conteudo_modelo['summary'])
+                    else:
+                        st.write(conteudo_modelo)
 
 # ==============================================================================
 # ABA 2: DASHBOARD
@@ -142,37 +241,43 @@ with tab_dash:
         
         st.markdown("---")
         
-        # --- Listas Detalhadas ---
+        # --- Listas Detalhadas em Dropdowns ---
         col_lists_1, col_lists_2 = st.columns(2)
-        
-        def show_table(title, dataframe, color_header):
-            st.markdown(f"##### {title}")
-            if not dataframe.empty:
-                st.dataframe(
-                    dataframe[['cnpj', 'data', 'valor']], 
-                    use_container_width=True,
-                    hide_index=True
-                )
-            else:
+
+        def render_segment(header_text: str, dataframe: pd.DataFrame, alert_type: str) -> None:
+            callout_map = {
+                "error": st.error,
+                "warning": st.warning,
+                "info": st.info,
+                "success": st.success,
+            }
+            callout = callout_map.get(alert_type, st.write)
+            callout(header_text)
+
+            if dataframe.empty:
                 st.caption("Nenhum registro encontrado.")
+                return
+
+            records = dataframe[['cnpj', 'data', 'detalhes']].to_dict('records')
+            for record in records:
+                titulo = f"{record.get('cnpj', 'CNPJ desconhecido')} • {format_date_display(record.get('data'))}"
+                resposta_modelo = format_model_response(record.get('detalhes'))
+
+                with st.expander(titulo):
+                    if resposta_modelo.strip().startswith('{') or resposta_modelo.strip().startswith('['):
+                        st.code(resposta_modelo, language="json")
+                    else:
+                        st.markdown(resposta_modelo)
 
         with col_lists_1:
-            st.error("🔴 **Atenção Crítica (Atrasado + Valor Errado)**")
-            show_table("", seg_atrasado_valor_errado, "red")
-            
+            render_segment("🔴 **Atenção Crítica (Atrasado + Valor Errado)**", seg_atrasado_valor_errado, "error")
             st.markdown("<br>", unsafe_allow_html=True)
-            
-            st.warning("🟠 **Atenção no Valor (Em Dia + Valor Errado)**")
-            show_table("", seg_em_dia_valor_errado, "orange")
+            render_segment("🟠 **Atenção no Valor (Em Dia + Valor Errado)**", seg_em_dia_valor_errado, "warning")
 
         with col_lists_2:
-            st.info("🔵 **Atenção no Prazo (Atrasado + Valor Correto)**")
-            show_table("", seg_atrasado_valor_correto, "blue")
-            
+            render_segment("🔵 **Atenção no Prazo (Atrasado + Valor Correto)**", seg_atrasado_valor_correto, "info")
             st.markdown("<br>", unsafe_allow_html=True)
-            
-            st.success("🟢 **Conformes (Em Dia + Valor Correto)**")
-            show_table("", seg_em_dia_valor_correto, "green")
+            render_segment("🟢 **Conformes (Em Dia + Valor Correto)**", seg_em_dia_valor_correto, "success")
 
 # --- Rodapé ---
 st.markdown("---")
