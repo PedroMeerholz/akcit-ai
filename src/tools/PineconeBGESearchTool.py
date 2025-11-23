@@ -15,7 +15,7 @@ class PineconeBGESearchTool(BaseTool):
     name: str = "Busca Contratual com Filtro"
     description: str = (
         "Utilize esta ferramenta para buscar cláusulas contratuais filtrando por empresa. "
-        "É OBRIGATÓRIO fornecer a pergunta e o CNPJ."
+        "É OBRIGATÓRIO fornecer o CNPJ."
     )
     args_schema: Type[BaseModel] = SearchInput
 
@@ -56,5 +56,4 @@ class PineconeBGESearchTool(BaseTool):
         else:
             context_text = f"Nenhuma informação encontrada para o CNPJ {search_cnpj} com essa pergunta."
             
-        print(context_text)
         return context_text

@@ -1,19 +1,17 @@
-import re
 import streamlit as st
 
-from src.crew import ContractAgentCrew
+from src.crew import AgentCrew
 
 
-def run_contract_agent(question: str):
-    crew_instance = ContractAgentCrew()
+def run_contract_agent(payment_info: dict) -> str:
+    crew_instance = AgentCrew()
 
-    cnpj_pattern = r'\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}\-?\d{2}\b'
-    cnpj_match = re.search(cnpj_pattern, question)
-    cnpj = None
-    if cnpj_match:
-        cnpj = cnpj_match.group(0)
-
-    result = crew_instance.contractCrew().kickoff(inputs={"cnpj": cnpj})
+    inputs = {
+        "cnpj": payment_info['cnpj'],
+        "payment_info": payment_info
+    }
+    result = crew_instance.contractCrew().kickoff(inputs=inputs)
+    print(result)
     return result
 
 # --- Configuração da Página ---
@@ -22,23 +20,6 @@ st.set_page_config(page_title="Contratos.IA", page_icon="⚖️", layout="wide")
 st.title("⚖️ Contratos.IA")
 st.markdown("### Sistema de Consulta de Contratos por CNPJ")
 st.markdown("---")
-
-# --- Sidebar ---
-with st.sidebar:
-    st.header("ℹ️ Sobre")
-    st.markdown("""
-    Este sistema consulta informações contratuais 
-    armazenadas na base de conhecimento utilizando 
-    IA e RAG (Retrieval-Augmented Generation).
-    
-    **Informações disponíveis:**
-    - Valor original do contrato
-    - Data de pagamento
-    - Multa por atraso
-    - Juros por atraso
-    """)
-    st.markdown("---")
-    st.caption("Desenvolvido com CrewAI + Groq")
 
 # --- Formulário de Consulta ---
 col1, col2 = st.columns([3, 1])
@@ -73,8 +54,15 @@ if btn_consultar:
             
             with st.spinner("🤖 Analisando base de conhecimento..."):
                 # Monta a query com o CNPJ
-                query = f"Consulte as informações contratuais do CNPJ {cnpj_formatado}"
-                resultado = run_contract_agent(query)
+                # query = f"Consulte as informações contratuais do CNPJ {cnpj_formatado}"
+                
+                payment_data = {
+                    "cnpj": cnpj_formatado,
+                    "data_pagamento": "22/11/2025",
+                    "valor_pago": 1050.00
+                }
+                
+                resultado = run_contract_agent(payment_data)
             
             # Exibe o resultado
             st.success("✅ Consulta realizada com sucesso!")
@@ -82,24 +70,9 @@ if btn_consultar:
             st.markdown("### � Resultado da Consulta")
             
             # Container com borda para o resultado            
-            st.markdown(resultado)
+            st.write(resultado)
             
-            st.markdown("</div>", unsafe_allow_html=True)
             
-            # Botão de download do resultado
-            st.markdown("---")
-            col_download1, col_download2, col_download3 = st.columns([1, 2, 1])
-            with col_download2:
-                from datetime import datetime
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                
-                st.download_button(
-                    label="💾 Baixar Resultado",
-                    data=f"# Consulta Contratual - {cnpj_formatado}\n\n{resultado}",
-                    file_name=f"consulta_{cnpj_limpo}_{timestamp}.md",
-                    mime="text/markdown",
-                    use_container_width=True
-                )
 
 # --- Rodapé ---
 st.markdown("---")
