@@ -360,13 +360,13 @@ def run_contract_agent(payment_info: dict) -> str:
     }
 
 # --- Configuração da Página ---
-st.set_page_config(page_title="Contratos.IA", page_icon="⚖️", layout="wide")
+st.set_page_config(page_title="Verif.ai", layout="wide")
 
 # Inicializa histórico na sessão (carregando do arquivo, se existir)
 if 'historico_pagamentos' not in st.session_state:
     st.session_state['historico_pagamentos'] = load_history()
 
-st.title("⚖️ Contratos.IA")
+st.title("Verif.ai")
 st.markdown("### Gestão Inteligente de Fiscalização Contratual")
 st.markdown("---")
 
